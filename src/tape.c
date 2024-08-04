@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "log.h"
+
+LOG_MODULE(tape);
+
 #define SEGMENT_SIZE 512
 
 struct tape_segment {
@@ -92,11 +96,11 @@ int tape_move(tape_handle tape_h, int offset) {
 		if (total_offset > BUFFER_SIZE) {
 			ret = tape_advance(t);
 			total_offset -= BUFFER_SIZE;
-			//printf("[debug] advance tape\n");
+			LOG_DBG("advance tape\n");
 		} else if (total_offset < 0) {
 			ret = tape_rewind(t);
 			total_offset += BUFFER_SIZE;
-			//printf("[debug] rewind tape\n");
+			LOG_DBG("rewind tape\n");
 		} else {
 			break;
 		}
@@ -106,7 +110,7 @@ int tape_move(tape_handle tape_h, int offset) {
 
 	t->offset = (int)(total_offset);
 
-	//printf("[debug] tape offset changed %d -> %d\n", old_offset, t->offset);
+	LOG_DBG("tape offset changed %d -> %d\n", old_offset, t->offset);
 
 	return 0;
 }
@@ -115,7 +119,7 @@ int tape_get(tape_handle tape_h, uint8_t* value) {
 	struct tape *t = tape_h;
 
 	*value = t->head->buffer[t->offset];
-	//printf("[debug] get value at %d: %02x\n", t->offset, *value);
+	LOG_DBG("get value at %d: %02x\n", t->offset, *value);
 
 	return 0;
 }
@@ -123,7 +127,7 @@ int tape_get(tape_handle tape_h, uint8_t* value) {
 int tape_set(tape_handle tape_h, uint8_t value) {
 	struct tape *t = tape_h;
 
-	//printf("[debug] set value at %d: %02x\n", t->offset, value);
+	LOG_DBG("set value at %d: %02x\n", t->offset, value);
 	t->head->buffer[t->offset] = value;
 
 	return 0;

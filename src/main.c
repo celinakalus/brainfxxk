@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "brainfxxk.h"
 
+#include "log.h"
+
+LOG_MODULE(main);
+
 int stdio_read(uint8_t *value) {
 	int ret = 0;
 
@@ -35,7 +39,7 @@ bf_interface stdio_iface = {
 
 int main(int argc, char **argv) {
 	if (argc < 2) {
-		printf("Missing argument: file\n");
+		LOG_ERR("Missing argument: file\n");
 		return -1;
 	}
 
@@ -44,7 +48,7 @@ int main(int argc, char **argv) {
 	FILE *f = fopen(fname, "r");
 
 	if (f == NULL) {
-		printf("File not found: \"%s\"\n", fname);
+		LOG_ERR("File not found: \"%s\"\n", fname);
 	}
 
 	bf_handle hndl;
@@ -53,19 +57,19 @@ int main(int argc, char **argv) {
 	ret = bf_init(&hndl, &stdio_iface);
 
 	if (ret != 0) {
-		printf("Error while initializing brainfxxk: %i\n", ret);
+		LOG_ERR("Error while initializing brainfxxk: %i\n", ret);
 	}
 
 	ret = bf_load(hndl, f);
 
 	if (ret != 0) {
-		printf("Error while loading file: %i\n", ret);
+		LOG_ERR("Error while loading file: %i\n", ret);
 	}
 
 	ret = bf_execute(hndl);
 
 	if (ret != 0) {
-		printf("Error while executing: %i\n", ret);
+		LOG_ERR("Error while executing: %i\n", ret);
 	}
 
 }

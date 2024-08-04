@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "log.h"
+
+LOG_MODULE(brainfxxk);
+
 struct bf_instance {
 	tape_handle tape;
 	bf_interface *iface;
@@ -100,7 +104,7 @@ void bf_write_char(struct bf_instance *inst, uint8_t value) {
 
 static int bf_step_internal(struct bf_instance *inst) {
 	char instr = inst->code[inst->instr_pointer];
-	printf("[debug] instruction %c at %i\n", instr, inst->instr_pointer);
+	LOG_DBG("instruction %c at %i\n", instr, inst->instr_pointer);
 
 	switch (instr) {
 		case '+':
@@ -127,11 +131,11 @@ static int bf_step_internal(struct bf_instance *inst) {
 		} break;
 		case '[': {
 			inst->stack[inst->stack_pointer++] = inst->instr_pointer;
-			printf("[debug] stack push %d @ %d\n", inst->stack[inst->stack_pointer - 1], inst->stack_pointer);
+			LOG_DBG("stack push %d @ %d\n", inst->stack[inst->stack_pointer - 1], inst->stack_pointer);
 		} break;
 		case ']': {
 			if (inst->stack_pointer <= 0) {
-				printf("Illegal stack access!\n");
+				LOG_ERR("Illegal stack access!\n");
 				return -1;
 			}
 
@@ -141,10 +145,10 @@ static int bf_step_internal(struct bf_instance *inst) {
 			tape_get(inst->tape, &tape_value);
 
 			if (tape_value > 0) {
-				printf("[debug] stack peek %d @ %d\n", stack_value, inst->stack_pointer);
+				LOG_DBG("stack peek %d @ %d\n", stack_value, inst->stack_pointer);
 				inst->instr_pointer = stack_value;
 			} else {
-				printf("[debug] stack  pop %d @ %d\n", stack_value, inst->stack_pointer);
+				LOG_DBG("stack  pop %d @ %d\n", stack_value, inst->stack_pointer);
 				inst->stack_pointer--;
 			}
 		} break;
