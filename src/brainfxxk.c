@@ -79,15 +79,18 @@ uint8_t bf_read_char(struct bf_instance *inst) {
 	int ret = 0;
 
 	if (iface == NULL || iface->read == NULL) {
+		LOG_DBG("No interface given, returning 0.\n");
 		return 0;
 	}
 
 	ret = iface->read(&value);
 
 	if (ret != 0) {
+		LOG_WRN("Error while reading; Error code: %i\n", ret);
 		return 0;
 	}
 
+	LOG_DBG("Read value %c (%02x)\n", value, value);
 	return value;
 }
 
@@ -96,10 +99,17 @@ void bf_write_char(struct bf_instance *inst, uint8_t value) {
 	int ret = 0;
 
 	if (iface == NULL || iface->read == NULL) {
+		LOG_DBG("No interface given, returning 0.\n");
 		return;
 	}
 
 	ret = iface->write(value);
+
+	if (ret != 0) {
+		LOG_WRN("Error while reading; Error code: %i\n", ret);
+	}
+
+	LOG_DBG("Written value %c (%02x)\n", value, value);
 }
 
 static int bf_step_internal(struct bf_instance *inst) {
@@ -130,8 +140,35 @@ static int bf_step_internal(struct bf_instance *inst) {
 			tape_set(inst->tape, value);
 		} break;
 		case '[': {
-			inst->stack[inst->stack_pointer++] = inst->instr_pointer;
-			LOG_DBG("stack push %d @ %d\n", inst->stack[inst->stack_pointer - 1], inst->stack_pointer);
+			uint8_t value;
+			tape_get(inst->tape, &value);
+			if (value > 0) {
+				inst->stack[inst->stack_pointer++] = inst->instr_pointer;
+				LOG_DBG("stack push %d @ %d\n", inst->stack[inst->stack_pointer - 1], inst->stack_pointer);
+			} else {
+				int rec_height = 0;
+				int next_instr_pointer = inst->instr_pointer;
+
+				while (next_instr_pointer < inst->code_size) {
+					char next_inst = inst->code[next_instr_pointer++];
+
+					if (next_inst == '[') {
+						rec_height++;
+					} else if (next_inst == ']') {
+						rec_height--;
+					}
+
+					if (rec_height == 0) { break; }
+				}
+
+				if (rec_height != 0) {
+					LOG_ERR("Unmatched open bracket at %i\n", inst->instr_pointer);
+					return -1;
+				}
+
+				LOG_DBG("Jumping forward from %i to %i\n", inst->instr_pointer, next_instr_pointer);
+				inst->instr_pointer = next_instr_pointer;
+			}
 		} break;
 		case ']': {
 			if (inst->stack_pointer <= 0) {
@@ -161,9 +198,15 @@ static int bf_step_internal(struct bf_instance *inst) {
 
 int bf_execute(bf_handle hndl) {
 	struct bf_instance *inst = hndl;
+	int ret = 0;
 
 	while (inst->instr_pointer < inst->code_size) {
-		bf_step_internal(inst);
+		ret = bf_step_internal(inst);
+
+		if (ret != 0) {
+			LOG_INF("Aborting execution due to error.\n");
+			return -1;
+		}
 	}
 
 	return 0;

@@ -58,18 +58,22 @@ int main(int argc, char **argv) {
 
 	if (ret != 0) {
 		LOG_ERR("Error while initializing brainfxxk: %i\n", ret);
+		return -1;
 	}
 
 	ret = bf_load(hndl, f);
 
 	if (ret != 0) {
 		LOG_ERR("Error while loading file: %i\n", ret);
+		return -1;
 	}
 
 	ret = bf_execute(hndl);
 
 	if (ret != 0) {
 		LOG_ERR("Error while executing: %i\n", ret);
+		return -1;
 	}
 
+	return 0;
 }
