@@ -1,4 +1,5 @@
 #include "tape.h"
+#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -23,6 +24,7 @@ struct tape {
 
 static struct tape_segment* tape_alloc_seg(void) {
 	struct tape_segment* seg = malloc(SEGMENT_SIZE);
+	memset(seg, 0, SEGMENT_SIZE);
 
 	seg->next = NULL;
 	seg->prev = NULL;
