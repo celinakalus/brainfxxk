@@ -144,15 +144,15 @@ static int bf_step_internal(struct bf_instance *inst) {
 		case '[': {
 			uint8_t value;
 			tape_get(inst->tape, &value);
-			if (value > 0) {
+			if (value != 0) {
 				inst->stack[inst->stack_pointer++] = inst->instr_pointer;
 				LOG_DBG("stack push %d @ %d\n", inst->stack[inst->stack_pointer - 1], inst->stack_pointer);
 			} else {
-				int rec_height = 0;
+				int rec_height = 1;
 				int next_instr_pointer = inst->instr_pointer;
 
 				while (next_instr_pointer < inst->code_size) {
-					char next_inst = inst->code[next_instr_pointer++];
+					char next_inst = inst->code[++next_instr_pointer];
 
 					if (next_inst == '[') {
 						rec_height++;
@@ -164,17 +164,20 @@ static int bf_step_internal(struct bf_instance *inst) {
 				}
 
 				if (rec_height != 0) {
-					LOG_ERR("Unmatched open bracket at %i\n", inst->instr_pointer);
+					LOG_ERR("Unmatched open bracket at %i\n",
+							inst->instr_pointer);
 					return -1;
 				}
 
-				LOG_DBG("Jumping forward from %i to %i\n", inst->instr_pointer, next_instr_pointer);
+				LOG_DBG("Jumping forward from %i to %i\n",
+						inst->instr_pointer, next_instr_pointer);
 				inst->instr_pointer = next_instr_pointer;
 			}
 		} break;
 		case ']': {
 			if (inst->stack_pointer <= 0) {
-				LOG_ERR("Illegal stack access!\n");
+				LOG_ERR("Illegal stack access! (ip: %i, sp: %i)\n",
+						inst->instr_pointer, inst->stack_pointer);
 				return -1;
 			}
 
