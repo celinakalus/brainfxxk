@@ -7,3 +7,7 @@ add_executable(brainfxxk
 	src/main.c
 	src/log.c
 	src/tape.c)
+
+target_compile_options(brainfxxk
+	PRIVATE -Wall -Wextra -Wpedantic -Werror
+)

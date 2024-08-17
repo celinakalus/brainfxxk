@@ -18,6 +18,13 @@ struct bf_instance {
 	int stack_pointer;
 };
 
+static int bf_reset_internal(struct bf_instance *inst) {
+	inst->instr_pointer = 0;
+	inst->stack_pointer = 0;
+
+	return 0;
+}
+
 int bf_init(bf_handle *hndl, bf_interface *iface) {
 	struct bf_instance *inst = malloc(sizeof(struct bf_instance));
 	*hndl = inst;
@@ -31,6 +38,8 @@ int bf_init(bf_handle *hndl, bf_interface *iface) {
 	tape_new(&(inst->tape));
 
 	inst->iface = iface;
+
+	bf_reset_internal(inst);
 
 	return 0;
 }
@@ -62,13 +71,6 @@ int bf_load(bf_handle hndl, FILE *file) {
 	if (ret != inst->code_size) {
 		return -1;
 	}
-
-	return 0;
-}
-
-static int bf_reset_internal(struct bf_instance *inst) {
-	inst->instr_pointer = 0;
-	inst->stack_pointer = 0;
 
 	return 0;
 }

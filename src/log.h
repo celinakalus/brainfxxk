@@ -20,7 +20,7 @@ void io_log(log_module *log_mod, log_level ll, const char *format, ...);
 #define LOG_MODULE(mname) \
 	static log_module local_log_module = { \
 		.module_name = #mname, \
-	};
+	}
 
 #define LOG_INF(...) io_log(&local_log_module, LOG_LEVEL_INFO, __VA_ARGS__)
 #define LOG_DBG(...) io_log(&local_log_module, LOG_LEVEL_DEBUG, __VA_ARGS__)
