@@ -93,14 +93,14 @@ int tape_move(tape_handle tape_h, int offset) {
 	long long total_offset = (long long)(offset) + (long long)(old_offset);
 
 	while (1) {
-		if (total_offset > BUFFER_SIZE) {
+		if (total_offset > (int)BUFFER_SIZE) {
 			ret = tape_advance(t);
 			total_offset -= BUFFER_SIZE;
-			LOG_DBG("advance tape\n");
+			LOG_DBG("advance tape (offset %i)\n", (int)total_offset);
 		} else if (total_offset < 0) {
 			ret = tape_rewind(t);
 			total_offset += BUFFER_SIZE;
-			LOG_DBG("rewind tape\n");
+			LOG_DBG("rewind tape (offset %i)\n", (int)total_offset);
 		} else {
 			break;
 		}
