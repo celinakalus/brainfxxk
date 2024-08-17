@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "log.h"
 
@@ -16,11 +17,17 @@ struct bf_instance {
 	int instr_pointer;
 	int stack[64];
 	int stack_pointer;
+	enum {
+		STATUS_OK,
+		STATUS_ERR
+	} status;
 };
 
 static int bf_reset_internal(struct bf_instance *inst) {
 	inst->instr_pointer = 0;
 	inst->stack_pointer = 0;
+
+	inst->status = STATUS_OK;
 
 	return 0;
 }
@@ -30,6 +37,7 @@ int bf_init(bf_handle *hndl, bf_interface *iface) {
 	*hndl = inst;
 
 	if (inst == NULL) {
+		LOG_ERR("Could not allocate memory for instance.\n");
 		return -1;
 	}
 
@@ -47,6 +55,11 @@ int bf_init(bf_handle *hndl, bf_interface *iface) {
 int bf_load(bf_handle hndl, FILE *file) {
 	struct bf_instance *inst = hndl;
 	int ret = 0;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
 
 	if (inst->code != NULL) {
 		free(inst->code);
@@ -75,7 +88,27 @@ int bf_load(bf_handle hndl, FILE *file) {
 	return 0;
 }
 
-uint8_t bf_read_char(struct bf_instance *inst) {
+int bf_load_from_buffer(bf_handle hndl, const char *buf, const size_t size) {
+	struct bf_instance *inst = hndl;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+
+	if (buf == NULL) {
+		return -1;
+	}
+
+	inst->code_size = size;
+	inst->code = malloc(size);
+
+	memcpy(inst->code, buf, size);
+
+	return 0;
+}
+
+static uint8_t bf_read_char(struct bf_instance *inst) {
 	bf_interface *iface = inst->iface;
 	uint8_t value;
 	int ret = 0;
@@ -96,7 +129,7 @@ uint8_t bf_read_char(struct bf_instance *inst) {
 	return value;
 }
 
-void bf_write_char(struct bf_instance *inst, uint8_t value) {
+static void bf_write_char(struct bf_instance *inst, uint8_t value) {
 	bf_interface *iface = inst->iface;
 	int ret = 0;
 
@@ -201,19 +234,101 @@ static int bf_step_internal(struct bf_instance *inst) {
 	return 0;
 }
 
+int bf_step(bf_handle hndl) {
+	struct bf_instance *inst = hndl;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+
+	if (inst->code == NULL) {
+		LOG_ERR("No code loaded.\n");
+		return -1;
+	}
+
+	if (inst->instr_pointer >= inst->code_size) {
+		LOG_ERR("Instruction pointer outside code! (ip: %i, sp: %i)\n",
+				inst->instr_pointer, inst->stack_pointer);
+		return -1;
+	}
+
+	if (inst->status != STATUS_OK) {
+		LOG_ERR("Cannot execute further due to previous error.\n");
+		return -1;
+	}
+
+	int ret = bf_step_internal(inst);
+
+	if (ret != 0) {
+		inst->status = STATUS_ERR;
+		LOG_INF("Encountered error during step.\n");
+	}
+
+	return ret;
+}
+
 int bf_execute(bf_handle hndl) {
 	struct bf_instance *inst = hndl;
 	int ret = 0;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+
+	if (inst->code == NULL) {
+		LOG_ERR("No code loaded.\n");
+		return -1;
+	}
+
+	if (inst->status != STATUS_OK) {
+		LOG_ERR("Cannot execute further due to previous error.\n");
+		return -1;
+	}
 
 	while (inst->instr_pointer < inst->code_size) {
 		ret = bf_step_internal(inst);
 
 		if (ret != 0) {
 			LOG_INF("Aborting execution due to error.\n");
-			return -1;
+			inst->status = STATUS_ERR;
+			break;
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
+int bf_reset(bf_handle hndl) {
+	struct bf_instance *inst = hndl;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+
+	return bf_reset_internal(inst);
+}
+
+int bf_get_ip(bf_handle hndl) {
+	struct bf_instance *inst = hndl;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+	
+	return inst->instr_pointer;
+}
+
+int bf_get_sp(bf_handle hndl) {
+	struct bf_instance *inst = hndl;
+
+	if (inst == NULL) {
+		LOG_ERR("Given instance invalid.\n");
+		return -1;
+	}
+
+	return inst->stack_pointer;
+}
